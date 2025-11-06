@@ -243,16 +243,52 @@ class Attachment(Document):
 
     @property
     def filename(self) -> str:
-        return f"{self.file_id}{self.extension}"
+        """Generate unique filename for the attachment.
+        
+        Uses file_id if available (from Confluence Cloud),
+        otherwise falls back to a combination of attachment_id and sanitized title
+        to ensure uniqueness (for Confluence Server).
+        
+        Returns:
+            Unique filename with extension.
+        """
+        if self.file_id:
+            # Confluence Cloud: use file_id (GUID)
+            return f"{self.file_id}{self.extension}"
+        
+        # Confluence Server: use attachment_id + title for uniqueness
+        # This prevents overwrites when file_id is empty
+        sanitized_title = sanitize_filename(self.title)
+        
+        # Remove extension from title if it already exists
+        # to avoid double extensions like "image.png.png"
+        if sanitized_title.endswith(self.extension):
+            sanitized_title = sanitized_title[:-len(self.extension)]
+        
+        # Ensure filename uniqueness by including attachment_id
+        # Format: {id}_{title}{extension} or just {id}{extension} if title is empty
+        if sanitized_title:
+            return f"{self.id}_{sanitized_title}{self.extension}"
+        else:
+            return f"{self.id}{self.extension}"
 
     @property
     def _template_vars(self) -> dict[str, str]:
+        # Use filename (without extension) for attachment_file_id when file_id is empty
+        # This ensures unique filenames even when file_id is not provided (Confluence Server)
+        if self.file_id:
+            file_id_var = self.file_id
+        else:
+            # Remove extension from filename to get the base name
+            file_id_var = self.filename[: -len(self.extension)] if self.extension else self.filename
+        
         return {
             **super()._template_vars,
             "attachment_id": str(self.id),
             "attachment_title": sanitize_filename(self.title),
             # file_id is a GUID and does not need sanitized.
-            "attachment_file_id": self.file_id,
+            # When empty, uses the generated filename (id_title) for uniqueness
+            "attachment_file_id": file_id_var,
             "attachment_extension": self.extension,
         }
 

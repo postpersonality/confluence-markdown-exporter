@@ -14,12 +14,12 @@
 
 ## Features
 
-- Converts Confluence pages to Markdown format.
+- Exports Confluence pages in **Markdown** or **HTML** format.
 - Uses the Atlassian API to export individual pages, pages including children, and whole spaces.
 - Supports various Confluence elements such as headings, paragraphs, lists, tables, and more.
 - Retains formatting such as bold, italic, and underline.
 - Converts Confluence macros to equivalent Markdown syntax where possible.
-- Handles images and attachments by linking them appropriately in the Markdown output.
+- Handles images and attachments by linking them appropriately in the output.
 - Supports extended Markdown features like tasks, alerts, and front matter.
 
 ## Supported Markdown Elements
@@ -69,6 +69,12 @@ or by URL:
 confluence-markdown-exporter pages <page-url e.g. https://company.atlassian.net/MySpace/My+Page+Title> <output path e.g. ./output_path/>
 ```
 
+Optionally specify the export format (default is markdown):
+
+```sh
+confluence-markdown-exporter pages <page-id> <output path> --format html
+```
+
 #### 2.2. Export Page with Descendants
 
 Export a Confluence page and all its descendant pages by page ID:
@@ -83,12 +89,24 @@ or by URL:
 confluence-markdown-exporter pages-with-descendants <page-url e.g. https://company.atlassian.net/MySpace/My+Page+Title> <output path e.g. ./output_path/>
 ```
 
+Optionally specify the export format (default is markdown):
+
+```sh
+confluence-markdown-exporter pages-with-descendants <page-id> <output path> --format html
+```
+
 #### 2.3. Export Space
 
 Export all Confluence pages of a single Space:
 
 ```sh
 confluence-markdown-exporter spaces <space-key e.g. MYSPACE> <output path e.g. ./output_path/>
+```
+
+Optionally specify the export format (default is markdown):
+
+```sh
+confluence-markdown-exporter spaces <space-key> <output path> --format html
 ```
 
 #### 2.3. Export all Spaces
@@ -99,9 +117,15 @@ Export all Confluence pages across all spaces:
 confluence-markdown-exporter all-spaces <output path e.g. ./output_path/>
 ```
 
+Optionally specify the export format (default is markdown):
+
+```sh
+confluence-markdown-exporter all-spaces <output path> --format html
+```
+
 ### 3. Output
 
-The exported Markdown file(s) will be saved in the specified `output` directory e.g.:
+The exported files will be saved in the specified `output` directory. The file extension will be `.md` for Markdown format or `.html` for HTML format, e.g.:
 
 ```sh
 output_path/
@@ -113,6 +137,15 @@ output_path/
             ├── My nested Confluence Page.md
             └── Another one.md
 ```
+
+### 4. Export Formats
+
+The exporter supports two output formats:
+
+- **Markdown (default)**: Converts Confluence content to Markdown format, suitable for platforms like Obsidian, Gollum, Azure DevOps Wikis, Foam, Dendron, and more. Includes front matter with metadata.
+- **HTML**: Exports the original Confluence HTML without conversion. Metadata (breadcrumbs, labels) is included as HTML comments at the top of the file. This format preserves the exact HTML structure from Confluence.
+
+You can specify the format using the `--format` flag with any export command, or configure the default format in the configuration (see `export.export_format` below).
 
 ## Configuration
 
@@ -138,6 +171,7 @@ This will open a menu where you can:
 | Key                                   | Description                                                                                                           | Default                                                             |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | export.output_path                    | The directory where all exported files and folders will be written. Used as the base for relative and absolute links. | ./ (current working directory)                                      |
+| export.export_format                  | Output format for exported pages. Options: "markdown" (default) or "html".                                            | markdown                                                            |
 | export.page_href                      | How to generate links to pages in Markdown. Options: "relative" (default) or "absolute".                              | relative                                                            |
 | export.page_path                      | Path template for exported pages                                                                                      | {space_name}/{homepage_title}/{ancestor_titles}/{page_title}.md     |
 | export.attachment_href                | How to generate links to attachments in Markdown. Options: "relative" (default) or "absolute".                        | relative                                                            |
@@ -162,6 +196,30 @@ This will open a menu where you can:
 | auth.jira.pat                         | Jira Personal Access Token                                                                                            | ""                                                                  |
 
 You can always view and change the current config with the interactive menu above.
+
+### Attachment Naming
+
+The exporter automatically generates unique filenames for attachments to prevent overwrites:
+
+- **Confluence Cloud**: Uses the file's unique `file_id` (GUID) provided by the API
+- **Confluence Server**: Combines the attachment's unique `id` with its title when `file_id` is empty
+
+This ensures that attachments are never overwritten, even when exporting multiple pages with attachments that have the same file extension or similar names.
+
+**Example filenames:**
+- Confluence Cloud: `abc-def-123-guid.png`
+- Confluence Server: `645208921_Screenshot.png`
+
+You can customize the attachment storage path using the `attachment_path` template in the configuration. Available variables include:
+- `{attachment_file_id}` - File GUID or generated unique identifier
+- `{attachment_id}` - Unique attachment ID
+- `{attachment_title}` - Sanitized attachment title
+- `{attachment_extension}` - File extension with leading dot
+
+**Default template:** `{space_name}/attachments/{attachment_file_id}{attachment_extension}`
+
+> [!NOTE]
+> When `file_id` is empty (Confluence Server), the `{attachment_file_id}` variable will automatically use a combination of the attachment ID and sanitized title to ensure uniqueness.
 
 ### Configuration for Target Systems
 

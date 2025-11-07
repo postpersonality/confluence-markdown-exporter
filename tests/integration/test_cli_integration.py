@@ -105,3 +105,51 @@ def test_cli_entry_points() -> None:
         # Allow other exceptions as the module might have initialization code
         # but we can still verify it's importable
         pass
+
+
+@pytest.mark.parametrize(
+    "command,format_option",
+    [
+        ("pages", "markdown"),
+        ("pages", "html"),
+        ("pages_with_descendants", "markdown"),
+        ("pages_with_descendants", "html"),
+        ("spaces", "markdown"),
+        ("spaces", "html"),
+        ("all_spaces", "markdown"),
+        ("all_spaces", "html"),
+    ],
+)
+def test_format_option(command: str, format_option: str) -> None:
+    """Test that --format option is available and accepts valid values."""
+    cmd = [
+        sys.executable,
+        "-m",
+        "confluence_markdown_exporter.main",
+        command,
+        "--format",
+        format_option,
+        "--help",
+    ]
+    
+    try:
+        result = subprocess.run(  # noqa: S603
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        
+        # Check that help output shows format option
+        assert result.returncode == 0
+        assert "--format" in result.stdout
+        assert "markdown" in result.stdout.lower()
+        assert "html" in result.stdout.lower()
+        
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"Command {command} with format option timed out")
+    except subprocess.CalledProcessError as e:
+        pytest.fail(f"Command {command} with format option failed: {e}")
+    except Exception as e:  # noqa: BLE001
+        pytest.fail(f"Unexpected error testing format option: {e}")

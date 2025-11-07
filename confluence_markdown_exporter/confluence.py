@@ -293,9 +293,24 @@ class Attachment(Document):
         }
 
     @property
+    def file_extension(self) -> str:
+        """Get file extension based on export format."""
+        return ".html" if settings.export.export_format == "html" else ".md"
+        
+    @property
     def export_path(self) -> Path:
-        filepath_template = Template(settings.export.attachment_path.replace("{", "${"))
-        return Path(filepath_template.safe_substitute(self._template_vars))
+        filepath_template = Template(settings.export.page_path.replace("{", "${"))
+        base_path = Path(filepath_template.safe_substitute(self._template_vars))
+
+        # Handle existing extension in template
+        if base_path.suffix in [".md", ".html"]:
+            # Replace existing extension with correct one
+            base_path = base_path.with_suffix(self.file_extension)
+        else:
+            # Add extension if not present
+            base_path = base_path.parent / f"{base_path.name}{self.file_extension}"
+        
+        return base_path
 
     @classmethod
     def from_json(cls, data: JsonResponse) -> "Attachment":
@@ -413,9 +428,24 @@ class Page(Document):
         }
 
     @property
+    def file_extension(self) -> str:
+        """Get file extension based on export format."""
+        return ".html" if settings.export.export_format == "html" else ".md"
+
+    @property
     def export_path(self) -> Path:
         filepath_template = Template(settings.export.page_path.replace("{", "${"))
-        return Path(filepath_template.safe_substitute(self._template_vars))
+        base_path = Path(filepath_template.safe_substitute(self._template_vars))
+        
+        # Handle existing extension in template
+        if base_path.suffix in [".md", ".html"]:
+            # Replace existing extension with correct one
+            base_path = base_path.with_suffix(self.file_extension)
+        else:
+            # Add extension if not present
+            base_path = base_path.parent / f"{base_path.name}{self.file_extension}"
+        
+        return base_path
 
     @property
     def html(self) -> str:
@@ -434,9 +464,14 @@ class Page(Document):
 
         if DEBUG:
             self.export_body()
-        # Export attachments first so the files can be utilized during markdown conversion
+        # Export attachments first so the files can be utilized during conversion/export
         self.export_attachments()
-        self.export_markdown()
+        
+        # Export based on configured format
+        if settings.export.export_format == "html":
+            self.export_html()
+        else:
+            self.export_markdown()
 
     def export_with_descendants(self) -> None:
         export_pages([self.id, *self.descendants])
@@ -464,9 +499,33 @@ class Page(Document):
         )
 
     def export_markdown(self) -> None:
+        """Export page as Markdown with conversion."""
         save_file(
             settings.export.output_path / self.export_path,
             self.markdown,
+        )
+
+    def export_html(self) -> None:
+        """Export page as HTML without conversion."""
+        html_content = self.html
+        
+        # Optionally add metadata as HTML comments
+        if settings.export.page_breadcrumbs and self.ancestors:
+            breadcrumbs_html = "<!-- Breadcrumbs: " + " > ".join(
+                [f"Page ID: {ancestor}" for ancestor in self.ancestors]
+            ) + " -->\n"
+            html_content = breadcrumbs_html + html_content
+        
+        # Add labels as HTML comments if present
+        if self.labels:
+            labels_html = "<!-- Labels: " + ", ".join(
+                [label.name for label in self.labels]
+            ) + " -->\n"
+            html_content = labels_html + html_content
+        
+        save_file(
+            settings.export.output_path / self.export_path,
+            html_content,
         )
 
     def export_attachments(self) -> None:

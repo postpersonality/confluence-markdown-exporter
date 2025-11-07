@@ -5,6 +5,7 @@ from typing import Any
 
 import questionary
 import requests
+import urllib3  # used to mute InsecureRequestWarning when SSL verification is disabled
 from atlassian import Confluence as ConfluenceApiSdk
 from atlassian import Jira as JiraApiSdk
 from questionary import Style
@@ -37,6 +38,13 @@ class ApiClientFactory:
 
     def __init__(self, connection_config: dict[str, Any]) -> None:
         self.connection_config = connection_config
+        # If SSL verification is disabled in config, mute urllib3 InsecureRequestWarning
+        verify = self.connection_config.get("verify")
+        # Some code paths or libraries (atlassian-python-api) may use 'verify' or 'verify_ssl'
+        if verify is None:
+            verify = self.connection_config.get("verify_ssl")
+        if verify is False:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def create_confluence(self, auth: ApiDetails) -> ConfluenceApiSdk:
         try:

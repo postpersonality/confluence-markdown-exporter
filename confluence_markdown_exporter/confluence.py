@@ -299,18 +299,8 @@ class Attachment(Document):
         
     @property
     def export_path(self) -> Path:
-        filepath_template = Template(settings.export.page_path.replace("{", "${"))
-        base_path = Path(filepath_template.safe_substitute(self._template_vars))
-
-        # Handle existing extension in template
-        if base_path.suffix in [".md", ".html"]:
-            # Replace existing extension with correct one
-            base_path = base_path.with_suffix(self.file_extension)
-        else:
-            # Add extension if not present
-            base_path = base_path.parent / f"{base_path.name}{self.file_extension}"
-        
-        return base_path
+        filepath_template = Template(settings.export.attachment_path.replace("{", "${"))
+        return Path(filepath_template.safe_substitute(self._template_vars))
 
     @classmethod
     def from_json(cls, data: JsonResponse) -> "Attachment":

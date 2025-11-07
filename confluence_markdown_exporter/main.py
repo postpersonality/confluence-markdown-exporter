@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated
 
+import click
 import typer
 
 from confluence_markdown_exporter import __version__
@@ -32,9 +33,10 @@ def pages(
         ),
     ] = None,
     format: Annotated[
-        Literal["markdown", "html"] | None,
+        str | None,
         typer.Option(
-            help="Export format (markdown or html). Overrides config if set."
+            help="Export format (markdown or html). Overrides config if set.",
+            click_type=click.Choice(["markdown", "html"]),
         ),
     ] = None,
 ) -> None:
@@ -59,9 +61,10 @@ def pages_with_descendants(
         ),
     ] = None,
     format: Annotated[
-        Literal["markdown", "html"] | None,
+        str | None,
         typer.Option(
-            help="Export format (markdown or html). Overrides config if set."
+            help="Export format (markdown or html). Overrides config if set.",
+            click_type=click.Choice(["markdown", "html"]),
         ),
     ] = None,
 ) -> None:
@@ -86,9 +89,10 @@ def spaces(
         ),
     ] = None,
     format: Annotated[
-        Literal["markdown", "html"] | None,
+        str | None,
         typer.Option(
-            help="Export format (markdown or html). Overrides config if set."
+            help="Export format (markdown or html). Overrides config if set.",
+            click_type=click.Choice(["markdown", "html"]),
         ),
     ] = None,
 ) -> None:
@@ -112,9 +116,10 @@ def all_spaces(
         ),
     ] = None,
     format: Annotated[
-        Literal["markdown", "html"] | None,
+        str | None,
         typer.Option(
-            help="Export format (markdown or html). Overrides config if set."
+            help="Export format (markdown or html). Overrides config if set.",
+            click_type=click.Choice(["markdown", "html"]),
         ),
     ] = None,
 ) -> None:
